@@ -86,5 +86,64 @@ namespace ApiWebLiga.Controllers
             }
         }
 
+        [HttpPost]
+        [Route("registroNuevoClub")]
+        public IHttpActionResult GuardarOrEditClubNew([FromBody] Club request)
+        {
+            // 1. Validación inicial del objeto
+            if (request == null)
+            {
+                return Ok(new Respuesta<int>
+                {
+                    Estado = false,
+                    Valor = "warning",
+                    Mensaje = "Debe enviar los datos requeridos."
+                });
+            }
+
+            try
+            {
+                string logoUrl = string.Empty;
+
+                // 1. Validar y convertir Fecha de forma segura
+                if (!DateTime.TryParseExact(request.FechaFundacion, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime fechaFundacion))
+                {
+                    return Ok(new Respuesta<int>
+                    {
+                        Estado = false,
+                        Valor = "warning",
+                        Mensaje = "El formato de la fecha no es válido. Debe ser dd/MM/yyyy."
+                    });
+
+                }
+
+                // 3. Manejo del logo
+                if (!string.IsNullOrEmpty(request.Base64Image))
+                {
+                    byte[] imageBytes = Convert.FromBase64String(request.Base64Image);
+                    using (var stream = new MemoryStream(imageBytes))
+                    {
+                        // Generamos un nombre único para el archivo
+                        string fileName = $"{Guid.NewGuid()}.jpg";
+                        logoUrl = Utilidadesj.UploadPhotoToCloud(stream, fileName);
+                    }
+                }
+
+                request.LogoUrl = logoUrl;
+
+                var respuesta = ClubData.GuardarOrEditClub(request, fechaFundacion);
+                return Ok(respuesta);
+            }
+            catch (Exception)
+            {
+                return Ok(new Respuesta<int>
+                {
+                    Estado = false,
+                    Valor = "error",
+                    Mensaje = "Ocurrió un error interno en el servidor"
+                });
+            }
+        }
+
     }
 }
