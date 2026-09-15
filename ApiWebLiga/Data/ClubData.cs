@@ -135,5 +135,55 @@ namespace ApiWebLiga.Data
             return response;
         }
 
+        public static Respuesta<List<ClubesDTO>> ListaClubesApp()
+        {
+            // 1. Iniciamos la respuesta por defecto en "Error" por si algo falla
+            Respuesta<List<ClubesDTO>> rpt = new Respuesta<List<ClubesDTO>>()
+            {
+                Estado = false,
+                Data = new List<ClubesDTO>(), // Lista vacía, no nula
+                Mensaje = "Error desconocido"
+            };
+
+            try
+            {
+                // Usamos la cadena limpia del Web.config
+                using (SqlConnection con = new SqlConnection(Conexion.RutaConexion))
+                {
+                    using (SqlCommand comando = new SqlCommand("usp_ObtenerClubesApp", con))
+                    {
+                        comando.CommandType = CommandType.StoredProcedure;
+                        con.Open();
+
+                        using (SqlDataReader dr = comando.ExecuteReader())
+                        {
+                            while (dr.Read())
+                            {
+                                rpt.Data.Add(new ClubesDTO
+                                {
+                                    NombreClub = dr["NombreClub"].ToString(),
+                                    FechaFundacion = dr["FechaFundacion"].ToString(),
+                                    LogoUrl = dr["LogoUrl"].ToString(),
+                                    NroJugadores = Convert.ToInt32(dr["NroJugadores"])
+                                });
+                            }
+                        }
+                    }
+                }
+
+                // Si todo salió bien, actualizamos la respuesta
+                rpt.Estado = true;
+                rpt.Mensaje = "Lista obtenida correctamente";
+            }
+            catch (Exception ex)
+            {
+                // Si hay error, el frontend sabrá exactamente qué pasó
+                rpt.Estado = false;
+                rpt.Mensaje = $"Error en BD: {ex.Message}";
+            }
+
+            return rpt;
+        }
+
     }
 }
